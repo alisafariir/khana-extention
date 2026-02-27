@@ -1,0 +1,101 @@
+/* Base font-face declarations for Vazirmatn (local to the extension) */
+/* Adjust file names here if your Vazirmatn package uses different names. */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Thin.woff2") format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-ExtraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Apply Vazirmatn only to Persian text using :lang(fa) and lang^="fa" */
+
+:lang(fa),
+[lang^="fa"] {
+  font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif !important;
+}
+
+/* Ensure descendants inherit Vazirmatn even if overridden locally */
+:lang(fa) *,
+[lang^="fa"] * {
+  font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif !important;
+}
+
+/* Form controls containing Persian text */
+input:lang(fa),
+textarea:lang(fa),
+button:lang(fa),
+select:lang(fa),
+input[lang^="fa"],
+textarea[lang^="fa"],
+button[lang^="fa"],
+select[lang^="fa"] {
+  font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif !important;
+}

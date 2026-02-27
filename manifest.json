@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "خوانا - فونت فارسی بهتر",
+  "description": "جایگزین کردن فونت متن‌های فارسی در همه وب‌سایت‌ها با خانواده Vazirmatn برای خوانایی بهتر، با امکان تنظیم اندازه فونت، فاصله خطوط و تبدیل اعداد.",
+  "version": "1.0.0",
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "خوانا"
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject.css",
+        "fonts/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "khana@example.com"
+    }
+  }
+}
