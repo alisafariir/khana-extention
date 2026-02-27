@@ -36,6 +36,11 @@ const KHANAPersianTextNodes = new WeakSet();
 let KHANALangObserver = null;
 let KHANAOriginalDir = null;
 
+const KHANA_RTL_ATTR = "data-khana-rtl";
+let KHANARtlSelectorsObserver = null;
+let KHANAPickerActive = false;
+let KHANAPickerOverlay = null;
+
 function KHANAHasPersianChars(str) {
   return /[\u0600-\u06FF]/.test(str);
 }
@@ -101,6 +106,43 @@ function getCurrentSiteConfig(settings) {
   } catch (e) {
     return {};
   }
+}
+
+function KHANABuildSelector(el) {
+  if (!el || el === document.documentElement) return null;
+  const esc = (v) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v.replace(/([^\w-])/g, "\\$1"));
+  if (el.id && el.id.trim() && document.querySelectorAll("#" + esc(el.id)).length === 1) {
+    return "#" + esc(el.id);
+  }
+  const tag = el.tagName.toLowerCase();
+  const classes = typeof el.className === "string"
+    ? el.className.trim().split(/\s+/).filter((c) => c.length)
+    : [];
+  if (classes.length) {
+    return tag + "." + esc(classes[0]);
+  }
+  return tag;
+}
+
+function KHANAApplyRtlToSelectors(selectors) {
+  if (!selectors || !Array.isArray(selectors) || selectors.length === 0) return;
+  selectors.forEach((sel) => {
+    try {
+      document.querySelectorAll(sel).forEach((el) => {
+        el.setAttribute("dir", "rtl");
+        el.setAttribute(KHANA_RTL_ATTR, "1");
+      });
+    } catch (e) {
+      // selector نامعتبر
+    }
+  });
+}
+
+function KHANAClearRtlFromSelectors() {
+  document.querySelectorAll("[" + KHANA_RTL_ATTR + "='1']").forEach((el) => {
+    el.removeAttribute("dir");
+    el.removeAttribute(KHANA_RTL_ATTR);
+  });
 }
 
 // Helper to get merged settings with defaults
@@ -272,42 +314,62 @@ function disableNumberConversion() {
   }
 }
 
+function applyRtlSelectorsAndObserve(selectors) {
+  KHANAClearRtlFromSelectors();
+  if (!selectors || selectors.length === 0) {
+    stopRtlSelectorsObserver();
+    return;
+  }
+  stopRtlSelectorsObserver();
+  KHANAApplyRtlToSelectors(selectors);
+  if (!document.body) return;
+  KHANARtlSelectorsObserver = new MutationObserver(() => {
+    KHANAApplyRtlToSelectors(selectors);
+  });
+  KHANARtlSelectorsObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function stopRtlSelectorsObserver() {
+  if (KHANARtlSelectorsObserver) {
+    KHANARtlSelectorsObserver.disconnect();
+    KHANARtlSelectorsObserver = null;
+  }
+}
+
 function applySettings(settings) {
-  if (!isSiteEnabled(settings)) {
+  const siteConfig = getCurrentSiteConfig(settings);
+  const enabled = isSiteEnabled(settings);
+
+  if (!enabled) {
     removeBaseCss();
     removeDynamicStyles();
     disableNumberConversion();
     disableLangDetection();
+  } else {
+    injectBaseCss();
+    updateDynamicStyles();
+    enableLangDetection();
 
-    // بازگرداندن جهت اولیه صفحه
-    if (KHANAOriginalDir !== null && document.documentElement) {
-      if (KHANAOriginalDir === "") {
-        document.documentElement.removeAttribute("dir");
-      } else {
-        document.documentElement.setAttribute("dir", KHANAOriginalDir);
-      }
+    const effectiveConvertNumbers =
+      typeof siteConfig.convertNumbers !== "undefined"
+        ? siteConfig.convertNumbers
+        : settings.convertNumbers;
+    if (effectiveConvertNumbers) {
+      enableNumberConversion();
+    } else {
+      disableNumberConversion();
     }
-    return;
   }
 
-  injectBaseCss();
-  updateDynamicStyles();
-
-  // همیشه روی سایت‌های فعال، متن فارسی را تشخیص می‌دهیم و lang را fa می‌کنیم
-  enableLangDetection();
-
-  // جهت صفحه (ترکیب تنظیم سراسری و تنظیم مخصوص هر سایت)
+  // جهت صفحه و بخش‌های انتخاب‌شده همیشه اعمال می‌شوند (حتی بدون اعمال فونت سراسری)
   if (document.documentElement) {
     if (KHANAOriginalDir === null) {
       KHANAOriginalDir = document.documentElement.getAttribute("dir") || "";
     }
-
-    const siteConfig = getCurrentSiteConfig(settings);
     const effectiveForceRtl =
       typeof siteConfig.forceRtl !== "undefined"
         ? siteConfig.forceRtl
         : settings.forceRtl;
-
     if (effectiveForceRtl) {
       document.documentElement.setAttribute("dir", "rtl");
     } else if (KHANAOriginalDir !== null) {
@@ -319,11 +381,64 @@ function applySettings(settings) {
     }
   }
 
-  if (settings.convertNumbers) {
-    enableNumberConversion();
-  } else {
-    disableNumberConversion();
+  const rtlSelectors = siteConfig.rtlSelectors || [];
+  applyRtlSelectorsAndObserve(rtlSelectors);
+}
+
+function KHANAShowToast(msg) {
+  const id = "khana-toast";
+  let el = document.getElementById(id);
+  if (el) el.remove();
+  el = document.createElement("div");
+  el.id = id;
+  el.textContent = msg;
+  el.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f172a;color:#e5e7eb;padding:10px 16px;border-radius:8px;font-family:system-ui,sans-serif;font-size:13px;z-index:2147483647;box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function KHANAStartPicker() {
+  if (KHANAPickerActive) return;
+  KHANAPickerActive = true;
+  if (KHANAPickerOverlay) KHANAPickerOverlay.remove();
+  KHANAPickerOverlay = document.createElement("div");
+  KHANAPickerOverlay.id = "khana-picker-overlay";
+  KHANAPickerOverlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:2147483646;display:flex;align-items:center;justify-content:center;cursor:crosshair;pointer-events:none;";
+  const instr = document.createElement("div");
+  instr.style.cssText = "pointer-events:auto;background:#0f172a;color:#e5e7eb;padding:16px 24px;border-radius:12px;font-family:system-ui,sans-serif;font-size:14px;text-align:center;max-width:280px;";
+  instr.textContent = "روی قسمتی از صفحه کلیک کنید که می‌خواهید همیشه راست‌چین شود";
+  KHANAPickerOverlay.appendChild(instr);
+  document.body.appendChild(KHANAPickerOverlay);
+
+  function onPick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.target;
+    if (target === KHANAPickerOverlay || target.closest("#khana-picker-overlay")) return;
+    const el = target.nodeType === 1 ? target : target.parentElement;
+    if (!el || el === document.documentElement) return;
+
+    const selector = KHANABuildSelector(el);
+    if (!selector) return;
+
+    const host = window.location.hostname || "";
+    chrome.storage.local.get({ siteSettings: {} }, (stored) => {
+      const siteSettings = stored.siteSettings || {};
+      const site = siteSettings[host] || {};
+      const list = site.rtlSelectors || [];
+      if (!list.includes(selector)) list.push(selector);
+      siteSettings[host] = { ...site, rtlSelectors: list };
+      chrome.storage.local.set({ siteSettings }, () => {
+        KHANAPickerOverlay.remove();
+        KHANAPickerOverlay = null;
+        KHANAPickerActive = false;
+        document.removeEventListener("click", onPick, true);
+        getSettings(applySettings);
+        KHANAShowToast("ذخیره شد. این بخش از این به بعد راست‌چین نمایش داده می‌شود.");
+      });
+    });
   }
+  document.addEventListener("click", onPick, true);
 }
 
 // Initial load
@@ -345,10 +460,15 @@ function applySettings(settings) {
 
   // Optional explicit re-apply trigger from popup
   try {
-    chrome.runtime.onMessage.addListener((message) => {
-      if (message && message.type === "khana-reapply") {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (!message || !message.type) return;
+      if (message.type === "khana-reapply") {
         getSettings(applySettings);
+      } else if (message.type === "khana-start-picker") {
+        KHANAStartPicker();
+        sendResponse({ ok: true });
       }
+      return true;
     });
   } catch (e) {
     // ignore
