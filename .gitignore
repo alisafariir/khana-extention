@@ -1,0 +1,4 @@
+node_modules/
+vscode-rtl-chat/dist/
+vscode-rtl-chat/*.vsix
+vscode-rtl-chat/.vscode-test/

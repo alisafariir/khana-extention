@@ -1,0 +1,45 @@
+{
+  "name": "khana-rtl-chat",
+  "displayName": "Khana RTL Chat",
+  "description": "Forces RTL direction in VS Code / Cursor chat markdown (via safe, reversible workbench CSS patch).",
+  "version": "0.1.0",
+  "publisher": "khana",
+  "author": "Ali Safari <alishon.safari@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:khanaRtlChat.enable",
+    "onCommand:khanaRtlChat.disable",
+    "onCommand:khanaRtlChat.status"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "khanaRtlChat.enable",
+        "title": "Khana: Enable RTL for Chat"
+      },
+      {
+        "command": "khanaRtlChat.disable",
+        "title": "Khana: Disable RTL for Chat"
+      },
+      {
+        "command": "khanaRtlChat.status",
+        "title": "Khana: RTL Chat Patch Status"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint": "eslint .",
+    "package": "vsce package"
+  }
+}
+
