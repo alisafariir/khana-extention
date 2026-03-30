@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 
 const PATCH_START = "/* khana-rtl-chat:start */";
 const PATCH_END = "/* khana-rtl-chat:end */";
@@ -85,12 +86,33 @@ function writeFileUtf8Atomic(filePath: string, content: string): void {
   fs.renameSync(tmp, filePath);
 }
 
-function ensureBackup(filePath: string): string {
-  const backupPath = `${filePath}.khana-backup`;
+function backupPathFor(context: vscode.ExtensionContext, workbenchCssPath: string): string {
+  const hash = crypto.createHash("sha256").update(workbenchCssPath).digest("hex").slice(0, 12);
+  const base = path.basename(workbenchCssPath);
+  const storageDir = context.globalStorageUri.fsPath;
+  return path.join(storageDir, `${base}.${hash}.khana-backup`);
+}
+
+function ensureBackup(context: vscode.ExtensionContext, workbenchCssPath: string): string {
+  const storageDir = context.globalStorageUri.fsPath;
+  fs.mkdirSync(storageDir, { recursive: true });
+  const backupPath = backupPathFor(context, workbenchCssPath);
   if (!fs.existsSync(backupPath)) {
-    fs.copyFileSync(filePath, backupPath);
+    fs.copyFileSync(workbenchCssPath, backupPath);
   }
   return backupPath;
+}
+
+function formatEnableDisableError(e: unknown, cssPath: string): string {
+  const err = e as NodeJS.ErrnoException;
+  if (err && (err.code === "EPERM" || err.code === "EACCES")) {
+    return [
+      "Permission denied while patching Workbench CSS.",
+      `File: ${cssPath}`,
+      "Fix: Close Cursor/VS Code, then run it as Administrator and try again (or install it in a user-writable folder)."
+    ].join("\n");
+  }
+  return `Failed: ${(e as Error)?.message ?? String(e)}`;
 }
 
 function candidateWorkbenchCssPaths(execPath: string): string[] {
@@ -160,13 +182,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      ensureBackup(cssPath);
+      ensureBackup(context, cssPath);
       const next = stripExistingPatch(css).replace(/\s*$/, "\n\n") + patchCssBlock();
       writeFileUtf8Atomic(cssPath, next);
       await showInfo("Enabled RTL Chat patch. Please reload the window.");
       await vscode.commands.executeCommand("workbench.action.reloadWindow");
     } catch (e) {
-      await showError(`Failed to enable patch: ${(e as Error)?.message ?? String(e)}`);
+      await showError(`Failed to enable patch: ${formatEnableDisableError(e, cssPath)}`);
     }
   });
 
@@ -184,13 +206,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      ensureBackup(cssPath);
+      ensureBackup(context, cssPath);
       const next = stripExistingPatch(css);
       writeFileUtf8Atomic(cssPath, next);
       await showInfo("Disabled RTL Chat patch. Please reload the window.");
       await vscode.commands.executeCommand("workbench.action.reloadWindow");
     } catch (e) {
-      await showError(`Failed to disable patch: ${(e as Error)?.message ?? String(e)}`);
+      await showError(`Failed to disable patch: ${formatEnableDisableError(e, cssPath)}`);
     }
   });
 
@@ -203,7 +225,7 @@ export function activate(context: vscode.ExtensionContext) {
     try {
       const css = readFileUtf8(cssPath);
       const enabled = hasPatch(css);
-      const backup = fs.existsSync(`${cssPath}.khana-backup`);
+      const backup = fs.existsSync(backupPathFor(context, cssPath));
       await showInfo(
         `RTL Chat patch: ${enabled ? "ENABLED" : "DISABLED"} | Backup: ${backup ? "YES" : "NO"}`
       );

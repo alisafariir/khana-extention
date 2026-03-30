@@ -1,7 +1,11 @@
-**/*.ts
-**/*.map
-**/node_modules/**
-**/.vscode/**
-tsconfig.json
-README.md
+**/*
+../**
+
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+!icon.png
+!tsconfig.json
+!dist/**
 
