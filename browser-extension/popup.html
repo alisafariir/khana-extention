@@ -1,355 +1,366 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>خوانا</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      @font-face {
-        font-family: "Vazirmatn";
-        src: url("fonts/Vazirmatn-Regular.woff2") format("woff2");
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
-      }
-      @font-face {
-        font-family: "Vazirmatn";
-        src: url("fonts/Vazirmatn-Bold.woff2") format("woff2");
-        font-weight: 700;
-        font-style: normal;
-        font-display: swap;
-      }
 
-      :root {
-        color-scheme: light dark;
-        --bg: #0f172a;
-        --bg-alt: #111827;
-        --accent: #22c55e;
-        --accent-soft: rgba(34, 197, 94, 0.12);
-        --text: #e5e7eb;
-        --muted: #9ca3af;
-        --border: rgba(148, 163, 184, 0.35);
-        --danger: #f97373;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <title>خوانا</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @font-face {
+      font-family: "Vazirmatn";
+      src: url("fonts/Vazirmatn-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    @font-face {
+      font-family: "Vazirmatn";
+      src: url("fonts/Vazirmatn-Bold.woff2") format("woff2");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
 
-      body {
-        margin: 0;
-        padding: 14px 16px 16px;
-        width: 340px;
-        max-height: 520px;
-        overflow-y: auto;
-        font-family: "Vazirmatn", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #020617;
-        color: var(--text);
-      }
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --bg-alt: #111827;
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.12);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: rgba(148, 163, 184, 0.35);
+      --danger: #f97373;
+    }
 
-      .card {
-        border-radius: 14px;
-        background: #020617;
-        padding: 12px 14px 10px;
-      }
+    * {
+      box-sizing: border-box;
+    }
 
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 4px;
-      }
-      .status-row {
-        margin-bottom: 10px;
-      }
+    body {
+      margin: 0;
+      padding: 14px 16px 16px;
+      width: 340px;
+      max-height: 520px;
+      overflow-y: auto;
+      font-family: "Vazirmatn", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: var(--text);
+    }
 
-      .title-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+    .card {
+      border-radius: 14px;
+      background: #020617;
+      padding: 12px 14px 10px;
+    }
 
-      .logo-dot {
-        width: 20px;
-        height: 20px;
-        border-radius: 999px;
-        background: conic-gradient(
-          from 210deg,
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .status-row {
+      margin-bottom: 10px;
+    }
+
+    .title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: conic-gradient(from 210deg,
           #22c55e,
           #a855f7,
           #22c55e,
-          #22c55e
-        );
-        padding: 2px;
-      }
+          #22c55e);
+      padding: 2px;
+    }
 
-      .logo-inner {
-        width: 100%;
-        height: 100%;
-        border-radius: inherit;
-        background: radial-gradient(circle at 30% 20%, #bbf7d0, #15803d);
-      }
+    .logo-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: radial-gradient(circle at 30% 20%, #bbf7d0, #15803d);
+    }
 
-      .title {
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-      }
+    .title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
 
-      .subtitle {
-        font-size: 11px;
-        color: var(--muted);
-        margin-bottom: 10px;
-      }
+    .subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
 
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 10px;
-        padding: 4px 8px;
-        border-radius: 9999px;
-        background: var(--accent-soft);
-        color: #bbf7d0;
-      }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      background: var(--accent-soft);
+      color: #bbf7d0;
+    }
 
-      .pill-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 999px;
-        background: #22c55e;
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3);
-      }
+    .pill.is-disabled {
+      background: rgba(249, 115, 115, 0.14);
+      color: var(--danger);
+    }
 
-      .row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-top: 8px;
-      }
+    .pill-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3);
+    }
 
-      .label-text {
-        font-size: 12px;
-      }
+    .pill.is-disabled .pill-dot {
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(249, 115, 115, 0.22);
+    }
 
-      .label-helper {
-        font-size: 10px;
-        color: var(--muted);
-      }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+    }
 
-      /* Toggle */
-      .toggle {
-        position: relative;
-        width: 46px;
-        min-width: 46px;
-        height: 24px;
-        flex-shrink: 0;
-      }
+    .label-text {
+      font-size: 12px;
+    }
 
-      .toggle input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
+    .label-helper {
+      font-size: 10px;
+      color: var(--muted);
+    }
 
-      .slider {
-        position: absolute;
-        cursor: pointer;
-        inset: 0;
-        background-color: #020617;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        transition: all 0.2s ease;
-        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
-      }
+    /* Toggle */
+    .toggle {
+      position: relative;
+      width: 46px;
+      min-width: 46px;
+      height: 24px;
+      flex-shrink: 0;
+    }
 
-      .slider::before {
-        content: "";
-        position: absolute;
-        height: 18px;
-        width: 18px;
-        left: 3px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: radial-gradient(circle at 30% 20%, #f9fafb, #d1d5db);
-        border-radius: 50%;
-        box-shadow:
-          0 6px 10px rgba(15, 23, 42, 0.85),
-          0 0 0 1px rgba(148, 163, 184, 0.8);
-        transition: all 0.2s ease;
-      }
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
 
-      input:checked + .slider {
-        background: radial-gradient(circle at 10% 0, #22c55e, #15803d);
-        border-color: rgba(34, 197, 94, 0.75);
-        box-shadow:
-          0 0 0 1px rgba(34, 197, 94, 0.4),
-          0 18px 40px rgba(22, 163, 74, 0.5);
-      }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #020617;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
+    }
 
-      input:checked + .slider::before {
-        transform: translate(19px, -50%);
-        box-shadow:
-          0 6px 12px rgba(15, 23, 42, 0.9),
-          0 0 0 1px rgba(220, 252, 231, 0.95);
-      }
+    .slider::before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: radial-gradient(circle at 30% 20%, #f9fafb, #d1d5db);
+      border-radius: 50%;
+      box-shadow:
+        0 6px 10px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(148, 163, 184, 0.8);
+      transition: all 0.2s ease;
+    }
 
-      .small {
-        margin-top: 8px;
-        font-size: 10px;
-        color: var(--muted);
-        display: flex;
-        justify-content: space-between;
-      }
+    input:checked+.slider {
+      background: radial-gradient(circle at 10% 0, #22c55e, #15803d);
+      border-color: rgba(34, 197, 94, 0.75);
+      box-shadow:
+        0 0 0 1px rgba(34, 197, 94, 0.4),
+        0 18px 40px rgba(22, 163, 74, 0.5);
+    }
 
-      .small span:last-child {
-        color: var(--accent);
-      }
+    input:checked+.slider::before {
+      transform: translate(19px, -50%);
+      box-shadow:
+        0 6px 12px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(220, 252, 231, 0.95);
+    }
 
-      .pick-btn {
-        width: 100%;
-        margin-top: 4px;
-        padding: 10px 12px;
-        font-size: 12px;
-        font-family: inherit;
-        color: var(--text);
-        background: var(--accent-soft);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        cursor: pointer;
-      }
-      .pick-btn:hover {
-        background: rgba(34, 197, 94, 0.2);
-      }
-      .pick-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
+    .small {
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
 
-      .rtl-selectors-list {
-        margin-top: 10px;
-        font-size: 11px;
-        color: var(--muted);
-      }
-      .rtl-selectors-list .item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 4px;
-        padding: 4px 0;
-      }
-      .rtl-selectors-list .sel {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .rtl-selectors-list .remove {
-        background: none;
-        border: none;
-        color: var(--danger);
-        cursor: pointer;
-        padding: 0 4px;
-        font-size: 14px;
-      }
-      .section-divider {
-        margin-top: 14px;
-        padding-top: 10px;
-        border-top: 1px solid var(--border);
-        font-size: 11px;
-        color: var(--muted);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <div class="header">
-        <div class="title-wrap">
-          <div class="logo-dot">
-            <div class="logo-inner"></div>
-          </div>
-          <div>
-            <div class="title">خوانا</div>
-            <div class="subtitle">فونت Vazirmatn برای تمام متن‌های فارسی</div>
-          </div>
-        </div>
-      </div>
-      <div class="status-row">
-        <span class="pill">
-          <span class="pill-dot"></span>
-          <span id="status-label">فعال در این سایت</span>
-        </span>
-      </div>
+    .small span:last-child {
+      color: var(--accent);
+    }
 
-      <div class="row">
-        <div>
-          <div class="label-text">اعمال فونت سراسری</div>
-          <div class="label-helper">استفاده از Vazirmatn فقط روی :lang(fa)</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="enabled-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+    .pick-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+    }
 
-      <div class="row" style="margin-top: 10px;">
-        <div>
-          <div class="label-text">راست‌چین کردن این سایت</div>
-          <div class="label-helper">تغییر جهت کل صفحه (dir) فقط برای این دامنه</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="site-force-rtl-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+    .pick-btn:hover {
+      background: rgba(34, 197, 94, 0.2);
+    }
 
-      <div class="row" style="margin-top: 10px;">
-        <div>
-          <div class="label-text">تبدیل اعداد انگلیسی به فارسی</div>
-          <div class="label-helper">فقط برای این سایت، در متن‌های فارسی</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="site-convert-numbers-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+    .pick-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
 
-      <div class="row" style="margin-top: 10px;">
-        <button type="button" id="pick-rtl-section-btn" class="pick-btn">
-          انتخاب بخش صفحه برای راست‌چین
-        </button>
-      </div>
+    .rtl-selectors-list {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
 
-      <div id="rtl-selectors-list" class="rtl-selectors-list"></div>
+    .rtl-selectors-list .item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 4px 0;
+    }
 
-      <div class="section-divider">پیش‌فرض برای سایت‌های جدید</div>
-      <div class="row" style="margin-top: 6px;">
-        <div>
-          <div class="label-text">راست‌چین کردن کل صفحه</div>
-          <div class="label-helper">dir=rtl به‌صورت پیش‌فرض</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="default-force-rtl-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="row" style="margin-top: 8px;">
-        <div>
-          <div class="label-text">تبدیل اعداد به فارسی</div>
-          <div class="label-helper">پیش‌فرض برای سایت‌های جدید</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="default-convert-numbers-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+    .rtl-selectors-list .sel {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
-      <div class="small" style="margin-top: 10px;">
-        <span>فونت صفحات انگلیسی دست‌نخورده می‌ماند.</span>
-      </div>
+    .rtl-selectors-list .remove {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 14px;
+    }
+
+    .section-divider {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="header">
+
+    </div>
+    <div class="status-row">
+      <span class="pill">
+        <span class="pill-dot"></span>
+        <span id="status-label">فعال در این سایت</span>
+      </span>
     </div>
 
-    <script src="popup.js"></script>
-  </body>
+    <div class="row">
+      <div>
+        <div class="label-text">اعمال فونت سراسری</div>
+        <div class="label-helper">استفاده از Vazirmatn فقط روی :lang(fa)</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="enabled-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top: 10px;">
+      <div>
+        <div class="label-text">راست‌چین کردن این سایت</div>
+        <div class="label-helper">تغییر جهت کل صفحه (dir) فقط برای این دامنه</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="site-force-rtl-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top: 10px;">
+      <div>
+        <div class="label-text">تبدیل اعداد انگلیسی به فارسی</div>
+        <div class="label-helper">فقط برای این سایت، در متن‌های فارسی</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="site-convert-numbers-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top: 10px;">
+      <button type="button" id="pick-rtl-section-btn" class="pick-btn">
+        انتخاب بخش صفحه برای راست‌چین
+      </button>
+    </div>
+
+    <div id="rtl-selectors-list" class="rtl-selectors-list"></div>
+
+    <div class="section-divider">پیش‌فرض برای سایت‌های جدید</div>
+    <div class="row" style="margin-top: 6px;">
+      <div>
+        <div class="label-text">راست‌چین کردن کل صفحه</div>
+        <div class="label-helper">dir=rtl به‌صورت پیش‌فرض</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="default-force-rtl-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <div>
+        <div class="label-text">تبدیل اعداد به فارسی</div>
+        <div class="label-helper">پیش‌فرض برای سایت‌های جدید</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="default-convert-numbers-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="small" style="margin-top: 10px;">
+      <span>فونت صفحات انگلیسی دست‌نخورده می‌ماند.</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
 </html>

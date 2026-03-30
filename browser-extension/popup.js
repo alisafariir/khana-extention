@@ -34,9 +34,25 @@ function isNormalWebUrl(url) {
   return url.startsWith("http://") || url.startsWith("https://");
 }
 
+function safeSendMessage(tabId, message, callback) {
+  try {
+    chrome.tabs.sendMessage(tabId, message, (res) => {
+      // Ignore "Receiving end does not exist" (e.g. chrome:// pages, not yet injected)
+      if (chrome.runtime && chrome.runtime.lastError) {
+        callback && callback(null);
+        return;
+      }
+      callback && callback(res);
+    });
+  } catch (e) {
+    callback && callback(null);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("enabled-toggle");
   const statusLabel = document.getElementById("status-label");
+  const statusPill = statusLabel && statusLabel.closest ? statusLabel.closest(".pill") : null;
   const siteForceRtlToggle = document.getElementById("site-force-rtl-toggle");
   const pickRtlSectionBtn = document.getElementById("pick-rtl-section-btn");
 
@@ -77,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderRtlSelectors(host, arr);
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
               const t = tabs && tabs[0];
-              if (t && t.id != null) chrome.tabs.sendMessage(t.id, { type: "khana-reapply" });
+              if (t && t.id != null) safeSendMessage(t.id, { type: "khana-reapply" });
             });
           });
         });
@@ -103,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           const t = tabs && tabs[0];
-          if (t && t.id != null) chrome.tabs.sendMessage(t.id, { type: "khana-reapply" });
+          if (t && t.id != null) safeSendMessage(t.id, { type: "khana-reapply" });
         });
       } catch (e) {}
     }
@@ -122,6 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
       defaultForceRtlToggle.checked = Boolean(stored.forceRtl);
       defaultConvertNumbersToggle.checked = Boolean(stored.convertNumbers);
       statusLabel.textContent = enabled ? "فعال در این سایت" : "غیرفعال در این سایت";
+      if (statusPill) statusPill.classList.toggle("is-disabled", !enabled);
       renderRtlSelectors(host, rtlSelectors);
     });
 
@@ -139,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         chrome.storage.local.set({ siteSettings }, () => {
           statusLabel.textContent = enabled ? "فعال در این سایت" : "غیرفعال در این سایت";
+          if (statusPill) statusPill.classList.toggle("is-disabled", !enabled);
           reapplyToCurrentTab();
         });
       });
@@ -174,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pickRtlSectionBtn.addEventListener("click", () => {
       getCurrentTab((t) => {
         if (!t || t.id == null || !isNormalWebUrl(t.url)) return;
-        chrome.tabs.sendMessage(t.id, { type: "khana-start-picker" }, () => {
+        safeSendMessage(t.id, { type: "khana-start-picker" }, () => {
           if (chrome.runtime.lastError) {
             pickRtlSectionBtn.textContent = "صفحه را رفرش کنید و دوباره امتحان کنید";
             setTimeout(() => { pickRtlSectionBtn.textContent = "انتخاب بخش صفحه برای راست‌چین"; }, 2000);
