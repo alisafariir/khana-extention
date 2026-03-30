@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "Ali Safari",
   "author": "Ali Safari <alishon.safari@gmail.com>",
+  "icon": "icon.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.96.0"
