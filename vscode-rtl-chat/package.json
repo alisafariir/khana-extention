@@ -1,9 +1,9 @@
 {
-  "name": "khana-rtl-chat",
-  "displayName": "Khana RTL Chat",
+  "name": "khana",
+  "displayName": "Khana",
   "description": "Forces RTL direction in VS Code / Cursor chat markdown (via safe, reversible workbench CSS patch).",
   "version": "0.1.0",
-  "publisher": "khana",
+  "publisher": "Ali Safari",
   "author": "Ali Safari <alishon.safari@gmail.com>",
   "license": "MIT",
   "engines": {

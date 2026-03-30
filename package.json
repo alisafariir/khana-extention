@@ -2,7 +2,8 @@
   "name": "khana-extensions",
   "private": true,
   "workspaces": [
-    "vscode-rtl-chat"
+    "vscode-rtl-chat",
+    "browser-extension"
   ],
   "devDependencies": {
     "@types/node": "^22.13.10",
@@ -12,7 +13,9 @@
   },
   "scripts": {
     "build:vscode": "npm --workspace=vscode-rtl-chat run build",
-    "watch:vscode": "npm --workspace=vscode-rtl-chat run watch"
+    "watch:vscode": "npm --workspace=vscode-rtl-chat run watch",
+    "build:browser": "npm --workspace=browser-extension run build",
+    "watch:browser": "npm --workspace=browser-extension run watch"
   }
 }
 
