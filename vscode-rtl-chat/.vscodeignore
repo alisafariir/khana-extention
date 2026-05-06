@@ -8,4 +8,5 @@
 !icon.png
 !tsconfig.json
 !dist/**
+!resources/**
 

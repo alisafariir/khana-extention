@@ -1,82 +1,148 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as crypto from "node:crypto";
+const MAIN_PATCH_START = "// khana-rtl-chat:start";
+const MAIN_PATCH_END = "// khana-rtl-chat:end";
+const RUNTIME_FILE_NAME = "khana-rtl-runtime.js";
 
-const PATCH_START = "/* khana-rtl-chat:start */";
-const PATCH_END = "/* khana-rtl-chat:end */";
-
-function patchCssBlock(): string {
-  // Chat UI in VS Code/Cursor can change between versions; we target multiple likely containers.
-  // The goal: make natural language content RTL, keep code blocks LTR.
+function mainPatchBlock(): string {
   return [
-    PATCH_START,
-    "/* This file was patched by Khana RTL Chat extension. */",
-    "",
-    // Main markdown renderers in chat messages
-    [
-      ".interactive-session .rendered-markdown",
-      ".interactive-session .chat-markdown",
-      ".chat-view .rendered-markdown",
-      ".chat-view .chat-markdown",
-      ".chat-response .rendered-markdown",
-      ".chat-response .chat-markdown",
-      ".chat-message .rendered-markdown",
-      ".chat-message .chat-markdown"
-    ].join(",\n") +
-      " {",
-    "  direction: rtl !important;",
-    "  text-align: right !important;",
-    "  unicode-bidi: plaintext !important;",
-    "}",
-    "",
-    // Keep code blocks LTR
-    [
-      ".interactive-session .rendered-markdown pre",
-      ".interactive-session .rendered-markdown code",
-      ".chat-view .rendered-markdown pre",
-      ".chat-view .rendered-markdown code",
-      ".chat-response .rendered-markdown pre",
-      ".chat-response .rendered-markdown code",
-      ".chat-message .rendered-markdown pre",
-      ".chat-message .rendered-markdown code"
-    ].join(",\n") +
-      " {",
-    "  direction: ltr !important;",
-    "  text-align: left !important;",
-    "  unicode-bidi: embed !important;",
-    "}",
-    "",
-    // Input box area (best-effort)
-    [
-      ".interactive-session .monaco-editor textarea",
-      ".chat-view .monaco-editor textarea"
-    ].join(",\n") +
-      " {",
-    "  direction: rtl !important;",
-    "  unicode-bidi: plaintext !important;",
-    "}",
-    PATCH_END,
-    ""
+    MAIN_PATCH_START,
+    `try { require("./${RUNTIME_FILE_NAME}"); } catch (e) { console.error("[khana-rtl-chat] runtime load failed", e); }`,
+    MAIN_PATCH_END
   ].join("\n");
 }
 
-function stripExistingPatch(css: string): string {
-  const start = css.indexOf(PATCH_START);
-  const end = css.indexOf(PATCH_END);
-  if (start === -1 || end === -1) return css;
-  const afterEnd = end + PATCH_END.length;
-  const before = css.slice(0, start);
-  const after = css.slice(afterEnd);
-  return (before + after).replace(/\n{3,}/g, "\n\n");
+function stripMainPatch(content: string): string {
+  const start = content.indexOf(MAIN_PATCH_START);
+  const end = content.indexOf(MAIN_PATCH_END);
+  if (start === -1 || end === -1) return content;
+  return (content.slice(0, start) + content.slice(end + MAIN_PATCH_END.length)).replace(/\n{3,}/g, "\n\n");
 }
 
-function hasPatch(css: string): boolean {
-  return css.includes(PATCH_START) && css.includes(PATCH_END);
+function hasMainPatch(content: string): boolean {
+  return content.includes(MAIN_PATCH_START) && content.includes(MAIN_PATCH_END);
+}
+
+function injectMainPatch(content: string): string {
+  const stripped = stripMainPatch(content);
+  const block = `${mainPatchBlock()}\n`;
+  const useStrict = stripped.indexOf('"use strict";');
+  if (useStrict !== -1) {
+    const afterStrict = stripped.indexOf("\n", useStrict);
+    if (afterStrict !== -1) {
+      return `${stripped.slice(0, afterStrict + 1)}${block}${stripped.slice(afterStrict + 1)}`;
+    }
+  }
+  return `${block}\n${stripped}`;
+}
+
+/** Main-process hook: inject motcke/cursor-ext-rtl parity renderer (embedded at enable time). */
+function runtimeJsContent(rendererSource: string): string {
+  const scriptLit = JSON.stringify(rendererSource);
+
+  return [
+    "/* khana-rtl-chat runtime — all WebContents (windows + webviews) */",
+    "(function () {",
+    '  var KEY = "__khana_rtl_runtime_loaded__";',
+    "  if (globalThis[KEY]) return;",
+    "  globalThis[KEY] = true;",
+    "",
+    "  var electron;",
+    "  try { electron = require(\"electron\"); } catch (e) { return; }",
+    "  var app = electron.app;",
+    "  var BrowserWindow = electron.BrowserWindow;",
+    "  if (!app) return;",
+    "",
+    "  var rendererScript = " + scriptLit + ";",
+    "",
+    "  var hooked = Object.create(null);",
+    "",
+    "  function shouldSkipWebContents(wc) {",
+    "    try {",
+    "      if (!wc || wc.isDestroyed()) return true;",
+    "      var u = wc.getURL();",
+    "      if (u && u.indexOf(\"devtools://\") === 0) return true;",
+    "    } catch (e) {}",
+    "    return false;",
+    "  }",
+    "",
+    "  function injectOnce(wc) {",
+    "    if (shouldSkipWebContents(wc)) return;",
+    "    var id = wc.id;",
+    "    if (hooked[id]) return;",
+    "    hooked[id] = true;",
+    "",
+    "    function run() {",
+    "      try {",
+    "        wc.executeJavaScript(rendererScript, true).catch(function () {});",
+    "      } catch (e) {}",
+    "    }",
+    "",
+    "    wc.on(\"dom-ready\", run);",
+    "    wc.on(\"did-finish-load\", run);",
+    "    wc.on(\"did-navigate\", run);",
+    "    setTimeout(run, 0);",
+    "    setTimeout(run, 500);",
+    "    setTimeout(run, 1500);",
+    "    setTimeout(run, 4000);",
+    "  }",
+    "",
+    "  function hookAllExisting() {",
+    "    try {",
+    "      if (electron.webContents && typeof electron.webContents.getAllWebContents === \"function\") {",
+    "        electron.webContents.getAllWebContents().forEach(injectOnce);",
+    "      }",
+    "    } catch (e) {}",
+    "    try {",
+    "      if (BrowserWindow && typeof BrowserWindow.getAllWindows === \"function\") {",
+    "        BrowserWindow.getAllWindows().forEach(function (win) {",
+    "          try {",
+    "            if (win && !win.isDestroyed() && win.webContents) injectOnce(win.webContents);",
+    "          } catch (e) {}",
+    "        });",
+    "      }",
+    "    } catch (e) {}",
+    "  }",
+    "",
+    "  function start() {",
+    "    hookAllExisting();",
+    "    setInterval(hookAllExisting, 5000);",
+    "    try {",
+    "      app.on(\"web-contents-created\", function (_e, wc) {",
+    "        injectOnce(wc);",
+    "      });",
+    "    } catch (e) {}",
+    "    try {",
+    "      if (BrowserWindow) {",
+    "        app.on(\"browser-window-created\", function (_e, win) {",
+    "          try {",
+    "            if (win && !win.isDestroyed() && win.webContents) injectOnce(win.webContents);",
+    "          } catch (e) {}",
+    "        });",
+    "      }",
+    "    } catch (e) {}",
+    "  }",
+    "",
+    "  if (app.isReady && app.isReady()) start();",
+    "  else app.once(\"ready\", start);",
+    "})();"
+  ].join("\n");
 }
 
 function readFileUtf8(filePath: string): string {
   return fs.readFileSync(filePath, { encoding: "utf8" });
+}
+
+const CURSOR_EXT_RTL_RENDERER_REL = path.join("resources", "cursor-ext-rtl-parity.js");
+
+/** motcke/cursor-ext-rtl/resources/rtl.js parity (bundled under resources/). */
+function loadCursorExtRtlParity(context: vscode.ExtensionContext): string {
+  const p = path.join(context.extensionPath, CURSOR_EXT_RTL_RENDERER_REL);
+  if (!fs.existsSync(p)) {
+    throw new Error(`Missing ${CURSOR_EXT_RTL_RENDERER_REL} (extension package incomplete).`);
+  }
+  return readFileUtf8(p);
 }
 
 function writeFileUtf8Atomic(filePath: string, content: string): void {
@@ -86,19 +152,18 @@ function writeFileUtf8Atomic(filePath: string, content: string): void {
   fs.renameSync(tmp, filePath);
 }
 
-function backupPathFor(context: vscode.ExtensionContext, workbenchCssPath: string): string {
-  const hash = crypto.createHash("sha256").update(workbenchCssPath).digest("hex").slice(0, 12);
-  const base = path.basename(workbenchCssPath);
+function backupPathFor(context: vscode.ExtensionContext, mainJsPath: string): string {
   const storageDir = context.globalStorageUri.fsPath;
-  return path.join(storageDir, `${base}.${hash}.khana-backup`);
+  const key = Buffer.from(mainJsPath).toString("base64").replace(/[/+=]/g, "_");
+  return path.join(storageDir, `${path.basename(mainJsPath)}.${key}.khana-backup`);
 }
 
-function ensureBackup(context: vscode.ExtensionContext, workbenchCssPath: string): string {
+function ensureBackup(context: vscode.ExtensionContext, mainJsPath: string): string {
   const storageDir = context.globalStorageUri.fsPath;
   fs.mkdirSync(storageDir, { recursive: true });
-  const backupPath = backupPathFor(context, workbenchCssPath);
+  const backupPath = backupPathFor(context, mainJsPath);
   if (!fs.existsSync(backupPath)) {
-    fs.copyFileSync(workbenchCssPath, backupPath);
+    fs.copyFileSync(mainJsPath, backupPath);
   }
   return backupPath;
 }
@@ -107,7 +172,7 @@ function formatEnableDisableError(e: unknown, cssPath: string): string {
   const err = e as NodeJS.ErrnoException;
   if (err && (err.code === "EPERM" || err.code === "EACCES")) {
     return [
-      "Permission denied while patching Workbench CSS.",
+      "Permission denied while patching Cursor/VS Code app files.",
       `File: ${cssPath}`,
       "Fix: Close Cursor/VS Code, then run it as Administrator and try again (or install it in a user-writable folder)."
     ].join("\n");
@@ -115,46 +180,64 @@ function formatEnableDisableError(e: unknown, cssPath: string): string {
   return `Failed: ${(e as Error)?.message ?? String(e)}`;
 }
 
-function candidateWorkbenchCssPaths(execPath: string): string[] {
-  // Examples:
-  // - VS Code (Windows): <install>\Code.exe
-  //   resources\app\out\vs\workbench\workbench.desktop.main.css
-  // - Cursor (Windows): <install>\Cursor.exe
-  //   resources\app\out\vs\workbench\workbench.desktop.main.css
+function candidateMainJsPaths(execPath: string): string[] {
   const exeDir = path.dirname(execPath);
-  const candidates: string[] = [];
-
-  // typical stable install layout
-  candidates.push(
-    path.join(exeDir, "resources", "app", "out", "vs", "workbench", "workbench.desktop.main.css")
-  );
-
-  // some builds keep CSS under "out/vs/workbench"
-  candidates.push(
-    path.join(exeDir, "resources", "app", "out", "vs", "workbench", "workbench.web.main.css")
-  );
-
-  // Insiders-like or alternate layouts
-  candidates.push(
-    path.join(exeDir, "..", "resources", "app", "out", "vs", "workbench", "workbench.desktop.main.css")
-  );
-  candidates.push(
-    path.join(exeDir, "..", "resources", "app", "out", "vs", "workbench", "workbench.web.main.css")
-  );
-
-  return Array.from(new Set(candidates.map((p) => path.normalize(p))));
+  return [
+    path.normalize(path.join(exeDir, "resources", "app", "out", "main.js")),
+    path.normalize(path.join(exeDir, "..", "resources", "app", "out", "main.js"))
+  ];
 }
 
-function findWorkbenchCssPath(): string | null {
-  const execPath = process.execPath;
-  for (const p of candidateWorkbenchCssPaths(execPath)) {
+function allMainJsNearExec(execPath: string): string[] {
+  const exeDir = path.dirname(execPath);
+  const roots = [path.join(exeDir, "resources", "app", "out"), path.join(exeDir, "..", "resources", "app", "out")];
+  const found = new Set<string>();
+  for (const root of roots) {
     try {
-      if (fs.existsSync(p) && fs.statSync(p).isFile()) return p;
+      if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) continue;
+      const stack: string[] = [root];
+      while (stack.length) {
+        const dir = stack.pop()!;
+        let entries: fs.Dirent[] = [];
+        try {
+          entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+          continue;
+        }
+        for (const e of entries) {
+          const full = path.join(dir, e.name);
+          if (e.isDirectory()) {
+            if (e.name === "node_modules" || e.name === ".git" || e.name === "extensions") continue;
+            stack.push(full);
+            continue;
+          }
+          if (!e.isFile()) continue;
+          if (e.name === "main.js") {
+            found.add(path.normalize(full));
+          }
+        }
+      }
     } catch {
       // ignore
     }
   }
-  return null;
+  return Array.from(found);
+}
+
+function findMainJsPaths(): string[] {
+  const execPath = process.execPath;
+  const found = new Set<string>();
+  for (const p of candidateMainJsPaths(execPath)) {
+    try {
+      if (fs.existsSync(p) && fs.statSync(p).isFile()) found.add(path.normalize(p));
+    } catch {}
+  }
+  for (const p of allMainJsNearExec(execPath)) {
+    try {
+      if (fs.existsSync(p) && fs.statSync(p).isFile()) found.add(path.normalize(p));
+    } catch {}
+  }
+  return Array.from(found);
 }
 
 async function showInfo(message: string): Promise<void> {
@@ -165,77 +248,150 @@ async function showError(message: string): Promise<void> {
   await vscode.window.showErrorMessage(message);
 }
 
+function isRtlEnabled(mainPaths: string[]): boolean {
+  if (mainPaths.length === 0) return false;
+  return mainPaths.some((p) => {
+    try {
+      return hasMainPatch(readFileUtf8(p));
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function activate(context: vscode.ExtensionContext) {
+  const output = vscode.window.createOutputChannel("Khana RTL Chat");
+  const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+
+  function refreshStatusBar(): void {
+    const enabled = isRtlEnabled(findMainJsPaths());
+    statusBar.text = enabled ? "$(symbol-keyword) RTL: ON" : "$(symbol-keyword) RTL: OFF";
+    statusBar.tooltip = "Khana RTL Chat toggle";
+    statusBar.command = "khanaRtlChat.toggle";
+    statusBar.show();
+  }
+
   const enable = vscode.commands.registerCommand("khanaRtlChat.enable", async () => {
-    const cssPath = findWorkbenchCssPath();
-    if (!cssPath) {
+    const mainPaths = findMainJsPaths();
+    if (mainPaths.length === 0) {
       await showError(
-        "Could not locate Workbench CSS. This method requires access to VS Code/Cursor installation files."
+        "Could not locate main.js. This method requires access to VS Code/Cursor installation files."
       );
       return;
     }
 
     try {
-      const css = readFileUtf8(cssPath);
-      if (hasPatch(css)) {
-        await showInfo("RTL Chat patch is already enabled.");
-        return;
+      let changed = 0;
+      for (const mainJsPath of mainPaths) {
+        const current = readFileUtf8(mainJsPath);
+        const next = injectMainPatch(current);
+        const runtimePath = path.join(path.dirname(mainJsPath), RUNTIME_FILE_NAME);
+        ensureBackup(context, mainJsPath);
+        if (next !== current) {
+          writeFileUtf8Atomic(mainJsPath, next);
+          changed++;
+        }
+        writeFileUtf8Atomic(runtimePath, runtimeJsContent(loadCursorExtRtlParity(context)));
       }
 
-      ensureBackup(context, cssPath);
-      const next = stripExistingPatch(css).replace(/\s*$/, "\n\n") + patchCssBlock();
-      writeFileUtf8Atomic(cssPath, next);
-      await showInfo("Enabled RTL Chat patch. Please reload the window.");
+      refreshStatusBar();
+      // Do not await showInformationMessage — it can wait until the toast dismisses and delays reload.
+      void showInfo(
+        changed === 0 ? "RTL runtime was already enabled. Reloading…" : `Enabled RTL runtime in ${changed} main.js file(s). Reloading…`
+      );
       await vscode.commands.executeCommand("workbench.action.reloadWindow");
     } catch (e) {
-      await showError(`Failed to enable patch: ${formatEnableDisableError(e, cssPath)}`);
+      const first = mainPaths[0] ?? "unknown";
+      await showError(`Failed to enable patch: ${formatEnableDisableError(e, first)}`);
+      refreshStatusBar();
     }
   });
 
   const disable = vscode.commands.registerCommand("khanaRtlChat.disable", async () => {
-    const cssPath = findWorkbenchCssPath();
-    if (!cssPath) {
-      await showError("Could not locate Workbench CSS.");
+    const mainPaths = findMainJsPaths();
+    if (mainPaths.length === 0) {
+      await showError("Could not locate main.js.");
       return;
     }
 
     try {
-      const css = readFileUtf8(cssPath);
-      if (!hasPatch(css)) {
-        await showInfo("RTL Chat patch is not enabled.");
-        return;
+      let changed = 0;
+      for (const mainJsPath of mainPaths) {
+        const current = readFileUtf8(mainJsPath);
+        const next = stripMainPatch(current);
+        if (next !== current) {
+          writeFileUtf8Atomic(mainJsPath, next);
+          changed++;
+        }
+        const runtimePath = path.join(path.dirname(mainJsPath), RUNTIME_FILE_NAME);
+        try {
+          if (fs.existsSync(runtimePath)) fs.unlinkSync(runtimePath);
+        } catch {
+          // ignore runtime delete failures
+        }
       }
 
-      ensureBackup(context, cssPath);
-      const next = stripExistingPatch(css);
-      writeFileUtf8Atomic(cssPath, next);
-      await showInfo("Disabled RTL Chat patch. Please reload the window.");
+      refreshStatusBar();
+      void showInfo(
+        changed === 0 ? "RTL was off. Reloading…" : `Disabled RTL runtime in ${changed} main.js file(s). Reloading…`
+      );
       await vscode.commands.executeCommand("workbench.action.reloadWindow");
     } catch (e) {
-      await showError(`Failed to disable patch: ${formatEnableDisableError(e, cssPath)}`);
+      const first = mainPaths[0] ?? "unknown";
+      await showError(`Failed to disable patch: ${formatEnableDisableError(e, first)}`);
+      refreshStatusBar();
     }
   });
 
+  const toggle = vscode.commands.registerCommand("khanaRtlChat.toggle", async () => {
+    if (isRtlEnabled(findMainJsPaths())) {
+      await vscode.commands.executeCommand("khanaRtlChat.disable");
+    } else {
+      await vscode.commands.executeCommand("khanaRtlChat.enable");
+    }
+    refreshStatusBar();
+  });
+
   const status = vscode.commands.registerCommand("khanaRtlChat.status", async () => {
-    const cssPath = findWorkbenchCssPath();
-    if (!cssPath) {
-      await showError("Could not locate Workbench CSS.");
+    const mainPaths = findMainJsPaths();
+    if (mainPaths.length === 0) {
+      await showError("Could not locate main.js.");
       return;
     }
     try {
-      const css = readFileUtf8(cssPath);
-      const enabled = hasPatch(css);
-      const backup = fs.existsSync(backupPathFor(context, cssPath));
-      await showInfo(
-        `RTL Chat patch: ${enabled ? "ENABLED" : "DISABLED"} | Backup: ${backup ? "YES" : "NO"}`
-      );
+      const patchedCount = mainPaths.reduce((acc, p) => acc + (hasMainPatch(readFileUtf8(p)) ? 1 : 0), 0);
+      const runtimeCount = mainPaths.reduce((acc, p) => {
+        const runtimePath = path.join(path.dirname(p), RUNTIME_FILE_NAME);
+        return acc + (fs.existsSync(runtimePath) ? 1 : 0);
+      }, 0);
+      await showInfo(`RTL runtime: ${patchedCount}/${mainPaths.length} patched | runtime file: ${runtimeCount}/${mainPaths.length}`);
     } catch (e) {
       await showError(`Failed to read status: ${(e as Error)?.message ?? String(e)}`);
     }
   });
 
-  context.subscriptions.push(enable, disable, status);
+  const diagnostics = vscode.commands.registerCommand("khanaRtlChat.diagnostics", async () => {
+    const mainPaths = findMainJsPaths();
+    output.clear();
+    output.appendLine(`execPath: ${process.execPath}`);
+    output.appendLine(`Found ${mainPaths.length} main.js file(s).`);
+    output.appendLine("");
+    for (const p of mainPaths.sort()) {
+      const runtimePath = path.join(path.dirname(p), RUNTIME_FILE_NAME);
+      const patched = hasMainPatch(readFileUtf8(p));
+      const runtimeExists = fs.existsSync(runtimePath);
+      output.appendLine(`- ${patched ? "[PATCHED]" : "[ ]"} ${p}`);
+      output.appendLine(`  runtime: ${runtimeExists ? "[OK]" : "[ ]"} ${runtimePath}`);
+      output.appendLine(`  backup: ${fs.existsSync(backupPathFor(context, p)) ? "[OK]" : "[ ]"} ${backupPathFor(context, p)}`);
+      output.appendLine("");
+    }
+    output.show(true);
+    await showInfo("Opened diagnostics output.");
+    refreshStatusBar();
+  });
+
+  refreshStatusBar();
+  context.subscriptions.push(output, statusBar, enable, disable, toggle, status, diagnostics);
 }
 
 export function deactivate() {}
-
